@@ -1,0 +1,536 @@
+---
+title: "Taller 2"
+author: |
+  Juanita Guerrero<br>
+  María José Camacho<br>
+  Grupo 6
+date: "31 de agosto de 2026""
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    theme: flatly
+    highlight: kate
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    code_folding: show
+    number_sections: false
+    css: styles.css
+subtitle: Biología Cuantitativa
+---
+
+## Sección 1
+### Ejercicio 1
+
+```{r}
+data("sleep")
+class(sleep$extra)
+class(sleep$group)
+class(sleep$ID)
+```
+
+**La variable `extra` corresponde a una variable R numérica, y una variable estadística cuantitativa continua.**  
+**La variable `group` corresponde a una variable R factor, y una variable estadística cualitativa nominal.**  
+**La variable `ID` corresponde a una variable R factor, y una variable estadística cualitativa nominal.**   
+
+## Sección 2
+### Ejercicio 2
+
+```{r}
+# Media
+s = sum(sleep$extra)
+media = s/20
+media
+
+# Ya que el cantidad de datos es par, se calcula un promedio entre los dos valores centrales de los datos para la mediana
+mediana = (0.8+1.1)/2
+mediana
+
+# Moda
+moda = c(0.1, 3.4, 0.8)
+moda
+
+# Con las funciones de R:
+mediar = mean(sleep$extra)
+mediar
+medianar = median(sleep$extra)
+medianar
+modar = mode(sleep$extra)
+modar
+```
+
+**La media y la mediana arrojan el mismo valor tanto de manera manual como con las funciones de R.
+Sin embargo, la función `mode()` no indica la moda de los datos, sino que funciona para ver el tipo de almacenamiento de dicha variable.**
+
+### Ejercicio 3
+
+```{r}
+# Para calcular la varianza realizamos una iteración o loop, para hallar la sumatoria de las diferencias entre cada valor de extra y la media aritmética
+
+media
+
+sumatoria = 0
+for (i in 1:length(sleep$extra)) {
+sumatoria = sumatoria + ((sleep$extra[i]-(media))**2)
+}
+sumatoria
+
+# Después, la sumatoria se divide entre n-1
+
+varianza = sumatoria / (20-1)
+varianza
+
+# La desviación estándar, es la raíz cuadrada de la varianza
+
+sd = sqrt(varianza)
+sd
+
+#Para encontrar el IQR debo calcular primero el Q1 y el Q3. Para poder hacer la operación Q3-Q1
+
+#Para encontrar el valor de Q1, hago un promedio de los valores encontrados en la posición 10 y 11 de mis datos, ya que tengo 20 datos. Y para Q3 hago un promedio entre los valores que están en la posición 15 y 16 de los datos
+
+Q1 = (-0.1+0.0)/2
+Q3 = (3.4+3.4)/2
+IQR = Q3 - Q1
+IQR
+```
+
+```{r}
+varianza_r = var(sleep$extra)
+varianza_r
+
+sd_r = sd(sleep$extra)
+sd_r
+
+IQR_r = IQR(sleep$extra)
+IQR_r
+```
+
+**La varianza y la desviación estándar coinciden con los resultados obtenidos mediante las funciones de R. El IQR presenta una pequeña diferencia debido al método utilizado para calcular los cuartiles.**
+
+### Ejercicio 4
+
+```{r}
+library(ggplot2)
+
+# Histograma
+histograma_sleep = ggplot(data = sleep, mapping = aes(x = extra)) + 
+  geom_histogram(fill = "#08519C", color = "black", alpha = 0.4, bins = 20) +
+  labs(title = "Distribución de Extra",
+       x = "Extra",
+       y = "Frecuencia")
+print(histograma_sleep)
+```
+
+**El histograma muestra que los valores de `Extra` presentan una distribución dispersa, con mayor concentración de observaciones alrededor de 0 y entre 0 y 1.**
+
+```{r}
+# Boxplot
+boxplot_sleep = ggplot(data = sleep, mapping = aes(x = group, y = extra)) + 
+  geom_boxplot(fill = "#08519C", color = "black", alpha = 0.4) + 
+  labs(title = "Distribución de Extra por grupo",
+       x = "Grupo",
+       y = "Extra")
+print(boxplot_sleep)
+```
+
+**El boxplot muestra que el grupo 2 presenta una mediana de `Extra` mayor que el grupo 1 y una mayor dispersión de los datos. No se observan valores atípicos.**
+
+## Sección 3
+### Ejercicio 5
+
+**Pregunta: ¿Hay una diferencia en la edad promedio entre los grupos `Underweight` y `Overweight`?**
+
+**Hipótesis**
+
+**H₀:** La edad promedio es igual.
+
+**H₁:** La edad promedio es diferente.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+
+bmi=read.csv("../data/bmi.csv")
+
+# Vector edades underweight
+underweight=bmi$Age[bmi$BmiClass=="Underweight"]
+
+# Vector edades overweight
+overweight=bmi$Age[bmi$BmiClass=="Overweight"]
+
+# Tamaño grupos
+n1=length(underweight)
+n2=length(overweight)
+
+# Media edad x grupo
+m1=mean(underweight)
+m2=mean(overweight)
+
+# Varianza x grupo
+s1=var(underweight)
+s2=var(overweight)
+
+# Varianza combinada
+sp2=((n1-1)*s1+
+       (n2-1)*s2)/
+      (n1+n2-2)
+
+sp2
+
+# SE
+SE=sqrt(sp2*(1/n1 + 1/n2))
+
+SE
+
+# Estadístico t
+t=(m1-m2)/SE
+
+t
+
+# Grados libertad
+df=n1+n2-2
+
+df
+
+# Valor crítico aprox tabla (α/2=0.025)
+critico=1.97
+abs(t)>critico
+```
+**Hay evidencia estadísticamente significativa de que la edad promedio difiere entre los grupos `Underweight` y `Overweight`. Se rechaza H₀.**
+
+```{r}
+# Comparación con función
+t.test(underweight, overweight)
+```
+
+### Ejercicio 6
+
+#### Prueba normalidad
+
+**H₀:** los datos siguen una distribución normal.
+
+**H₁:** los datos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+shapiro.test(underweight)
+shapiro.test(overweight)
+```
+
+**Hay evidencia estadísticamente significativa de que los grupos no siguen una distribución normal. Se rechaza H₀.**
+
+#### Prueba homocedasticidad
+
+**H₀:** las varianzas de los grupos son iguales.
+
+**H₁:** las varianzas de los grupos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+library(car)
+
+# Selección grupos
+datos=bmi[bmi$BmiClass=="Underweight" | bmi$BmiClass=="Overweight",]
+
+# Levene
+leveneTest(Age~BmiClass,data=datos)
+
+```
+
+**Hay evidencia estadísticamente significativa de que las varianzas no son iguales. Se rechaza H₀.**
+
+**Esto se relaciona con la diferencia que obtuvimos anteriormente al usar la función `t.test()` frente al cálculo manual, ya que al no cumplirse la homogeneidad de varianzas, R utilizó la prueba de Welch.**
+
+### Ejercicio 7
+
+**Hipótesis**
+
+**H₀:** el peso promedio es igual en los tres tratamientos (`ctrl`, `t1` y `t2`).
+
+**H₁:** al menos una media es diferente.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+data(PlantGrowth)
+
+# Variables
+ctrl=PlantGrowth$weight[PlantGrowth$group=="ctrl"]
+t1=PlantGrowth$weight[PlantGrowth$group=="trt1"]
+t2=PlantGrowth$weight[PlantGrowth$group=="trt2"]
+
+# Media peso
+media_total=mean(PlantGrowth$weight)
+
+# Media peso x grupo
+media_ctrl=mean(ctrl)
+media_t1=mean(t1)
+media_t2=mean(t2)
+
+# Tamaños grupos
+n_ctrl=length(ctrl)
+n_t1=length(t1)
+n_t2=length(t2)
+
+# SS entre
+SS_entre=n_ctrl*(media_ctrl-media_total)^2+
+         n_t1*(media_t1-media_total)^2+
+         n_t2*(media_t2-media_total)^2
+
+SS_entre
+
+# Varianza
+var_ctrl=var(ctrl)
+var_t1=var(t1)
+var_t2=var(t2)
+
+## SS dentro
+SS_dentro=(n_ctrl-1)*var_ctrl+
+          (n_t1-1)*var_t1+
+          (n_t2-1)*var_t2
+
+SS_dentro
+
+# SS total
+SS_total=SS_entre+SS_dentro
+
+SS_total
+
+# df entre grupos
+k=3
+df_entre=k-1
+
+df_entre
+
+# df dentro grupos
+N=n_ctrl+n_t1+n_t2
+df_dentro=N-k
+
+df_dentro
+
+# df total
+df_total=N-1
+
+df_total
+
+# MS entre
+MS_entre=SS_entre/df_entre
+
+MS_entre
+
+# MS dentro
+MS_dentro=SS_dentro/df_dentro
+
+MS_dentro
+
+# Estadístico F
+F=MS_entre/MS_dentro
+
+F
+
+# Valor crítico aprox tabla
+critico2=3.35
+F>critico2
+
+```
+
+**Hay evidencia estadísticamente significativa de que al menos uno de los tratamientos presenta un promedio de peso diferente. Se rechaza H₀.**
+
+```{r}
+# Comparación con función
+anova_plantas=aov(weight~group,data=PlantGrowth)
+
+summary(anova_plantas)
+```
+
+**Los resultados obtenidos manualmente coinciden con los resultados de la función `aov()`.**
+
+### Ejercicio 8a
+
+#### Prueba normalidad
+
+**H₀:** los residuos siguen una distribución normal.
+
+**H₁:** los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Residuos tratamientos
+res_ctrl=ctrl-media_ctrl
+res_t1=t1-media_t1
+res_t2=t2-media_t2
+
+# Residuos total
+residuos_modelo=c(res_ctrl,res_t1,res_t2)
+
+shapiro.test(residuos_modelo)
+
+```
+
+**No hay evidencia estadísticamente significativa de que los residuos no tengan una distribución normal. No se rechaza H₀.**
+
+#### Prueba homocedasticidad
+
+**H₀:** las varianzas de los grupos son iguales.
+
+**H₁:** las varianzas de los grupos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+leveneTest(weight~group,data=PlantGrowth)
+```
+
+**No hay evidencia estadísticamente significativa de que las varianzas sean distintas. No se rechaza H₀.**
+
+### Ejercicio 8b
+
+#### Análisis de varianza (Anova)
+
+**H₀:** las medias de edad son iguales entre todas las categorías de `BmiClass`.  
+**H₁:** al menos una de las medias de edad es diferente entre las categorías de `BmiClass`.
+
+```{r}
+anova_bmi <- aov(Age ~ BmiClass, data = bmi)
+anova_bmi
+summary(anova_bmi)
+```
+
+**Según el resultado de ANOVA, el p valor $p < 2e^{-16}$ es menor al nivel de significancia (0.05), se rechaza la hipótesis nula. Hay evidencia de que al menos una de las medias de edad es diferente. **
+
+#### Supuestos
+#### Prueba normalidad
+
+**H₀:** los residuos siguen una distribución normal.
+
+**H₁:** los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Residuos
+residuos_anova = residuals(anova_bmi)
+shapiro.test(residuos_anova)
+```
+**Hay evidencia estadísticamente significativa de que los residuos no siguen una distribución normal. Se rechaza H₀.**
+
+#### Prueba de homocedasticidad
+
+**H₀:** las varianzas de los grupos son iguales.
+
+**H₁:** las varianzas de los grupos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+leveneTest(Age~BmiClass,data=bmi)
+```
+
+**Hay evidencia estadísticamente significativa de que las varianzas no son iguales. Se rechaza H₀.**
+
+**Como no se cumplen los supuestos de normalidad y homocedasticidad, se utiliza la prueba de Kruskal-Wallis como alternativa no paramétrica al ANOVA.**
+
+```{r}
+kruskal.test(Age ~ BmiClass, data = bmi)
+```
+
+**El valor de $p < 2.2 \times 10^{-16}$ es menor que $\alpha = 0.05$, por lo que se rechaza H₀. La edad difiere entre al menos dos categorías de `BmiClass`.**
+
+**Como no se cumplieron los supuestos del ANOVA, no se utiliza la prueba de Tukey. En su lugar, se realizarán comparaciones de Wilcoxon por pares después de Kruskal-Wallis.**
+
+```{r}
+posthoc=pairwise.wilcox.test(bmi$Age,
+                               bmi$BmiClass,
+                               p.adjust.method="holm")
+posthoc
+```
+
+**Las comparaciones que presentan diferencias estadísticamente significativas son `Obese Class 1`–`Normal Weight`, `Overweight`–`Normal Weight`, `Overweight`–`Obese Class 2`, `Overweight`–`Obese Class 3` y `Underweight`–`Overweight`, ya que sus valores p ajustados son menores a 0.05.**
+
+### Ejercicio 9
+**`Bmi` → variable respuesta.**  
+**`BmiClass` → factor categórico.**  
+**`Age` → covariable continua.** 
+```{r}
+ancova=aov(Bmi~BmiClass+Age,data=bmi)
+
+summary(ancova)
+```
+
+**Como $p < 2 \times 10^{-16} < 0.05$ el efecto de `BmiClass` sobre el IMC es estadísticamente significativo. Se rechaza H₀.**
+
+#### Prueba normalidad
+
+**H₀:** los residuos siguen una distribución normal.
+
+**H₁:** los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+residuos_ancova=residuals(ancova)
+shapiro.test(residuos_ancova)
+```
+
+**Hay evidencia estadísticamente significativa de que los residuos no siguen una distribución normal. Se rechaza H₀.**
+
+#### Prueba homocedasticidad
+
+**H₀:** las varianzas de los grupos son iguales.
+
+**H₁:** las varianzas de los grupos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+leveneTest(Bmi~BmiClass,data=bmi)
+```
+
+**Hay evidencia estadísticamente significativa de que las varianzas no son iguales. Se rechaza H₀.**
+
+#### Relación lineal
+```{r}
+library(ggplot2)
+
+ggplot(data=bmi,
+       aes(x=Age,
+           y=Bmi,
+           color=BmiClass)) +
+  geom_point(alpha=0.7) +
+  geom_smooth(method="lm",se=FALSE) +
+  labs(title="Relación entre Edad e IMC",
+       x="Edad (años)",
+       y="IMC",
+       color="Categoría de IMC") +
+  scale_color_manual(values=c(
+    "#0D47A1",
+    "#1565C0",
+    "#1976D2",
+    "#1E88E5",
+    "#42A5F5",
+    "#90CAF9"
+  )) +
+  theme_bw()
+```
+
+**Se observa una relación aproximadamente lineal entre `Age` y `Bmi` dentro de las categorías de `BmiClass`, aunque las pendientes varían entre los grupos.**
+
+```{r}
+# Homogeneidad pendientes
+
+interaccion=aov(Bmi~BmiClass*Age,data=bmi)
+
+summary(interaccion)
+```
+
+**La interacción entre `BmiClass` y `Age` fue estadísticamente significativa ($p = 1.42 \times 10^{-6}$). Por lo tanto, se rechaza $H_0$ y no se cumple el supuesto de homogeneidad de las pendientes.**
+
+**El modelo no es estadísticamente aceptable, ya que no se cumplen los supuestos de normalidad de los residuos, homocedasticidad y homogeneidad de las pendientes.**

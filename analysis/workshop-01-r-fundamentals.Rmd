@@ -1,0 +1,299 @@
+---
+title: "Taller 1"
+subtitle: "Biología Cuantitativa"
+author: "Juanita Guerrero"
+date: "`r {
+meses <- c('enero','febrero','marzo','abril','mayo','junio',
+           'julio','agosto','septiembre','octubre','noviembre','diciembre')
+hoy <- Sys.Date()
+paste(as.numeric(format(hoy, '%d')), 'de',
+      meses[as.numeric(format(hoy, '%m'))], 'de',
+      format(hoy, '%Y'))
+}`"
+output:
+  html_document:
+    theme: flatly
+    highlight: kate
+    toc: true
+    toc_float: #false
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    code_folding: show
+    number_sections: false
+    css: styles.css
+---
+
+## Sección 1
+
+### Punto 1
+
+```{r}
+help("reserved")
+```
+
+**Respuesta:** 
+`if`: ejecuta un bloque de código cuando una condición es verdadera.
+
+`else`: ejecuta un bloque de código cuando la condición del if no se cumple.
+
+`repeat`: crea un ciclo que se repite continuamente hasta que se detiene con `break`.
+
+### Punto 2
+
+```{r}
+# Variable por tipo de dato
+estatura = 1.61
+edad = 26L
+casado = TRUE
+complejo = 3 + 4i
+nombre = "Juanita"
+```
+
+```{r}
+# Funciones
+class(estatura)
+typeof(estatura)
+
+class(edad)
+typeof(edad)
+
+class(casado)
+typeof(casado)
+
+class(complejo)
+typeof(complejo)
+
+class(nombre)
+typeof(nombre)
+```
+
+**Respuesta:** La diferencia solo se observa en la variable `estatura`. La función `class()`  indica la clase del objeto, mientras que `typeof()` muestra el tipo de dato con el que R lo almacena internamente. Como `estatura` es un número decimal, R la clasifica como `numeric`, pero internamente la almacena como un `double`, ya que este es el formato que utiliza por defecto para representar números reales con mayor precisión.
+
+### Punto 3
+```{r}
+# Ejemplos tipo operador
+# Aritmético
+print(10-2)
+print(10+2)
+print(10*2)
+print(10/2)
+print(10^2)
+```
+
+```{r}
+# Lógico
+print((18 >= 18) & (7 > 10))
+print((18 >= 18) | (7 > 10))
+print(!(18 >= 18))
+print((18 >= 18) && (7 > 10))
+print((18 >= 18) || (7 > 10))
+
+
+```
+
+```{r}
+# Relacional
+print(12 >= 16)
+print(12 > 16)
+print(12 < 16)
+print(12 == 16)
+print(12 != 16)
+print(12 <= 16)
+```
+
+**Respuesta:** La diferencia es que `&` y `&&` representan "and", mientras que `|` y `||` representan "or". Además, `&` y `|` evalúan todos los elementos de una expresión, mientras que `&&` y `||` solo evalúan el primer elemento y devuelven un único resultado lógico.
+
+## Sección 2
+
+### Punto 1
+```{r}
+# Imprimir cada vector
+vect1 = c(1, 2, 3)
+vect2 = c("Juan", "Lina", "Mauricio")
+vect3 = c(1, 5, "Hola")
+
+vect1
+vect2
+vect3
+```
+
+**Respuesta:** En el vector 3, se convierten todos los elementos a `character`. Esto sucede porque los vectores son estructuras de datos homogéneas (todos sus elementos deben ser del mismo tipo de dato). Al incluir "Hola", que es un texto, R convierte los valores numéricos 1 y 5 en caracteres para que todo el vector tenga el mismo tipo de dato.
+
+### Punto 2
+```{r}
+# Nuevo vector
+vect4 = c(5, 10, 15, 20, 25)
+
+# Longitud
+length(vect4)
+```
+
+### Punto 3
+```{r}
+# Matriz 3x3
+matriz1 = matrix(1:9, nrow = 3)
+matriz1
+```
+
+### Punto 4
+```{r}
+B = matrix(c(1, 2, 3, 4), nrow = 2, byrow = TRUE)
+B
+```
+
+```{r}
+# Operadores escalares en B
+B + 2
+
+B - 2
+
+B * 2
+
+B / 2
+
+B ^ 2
+```
+
+### Punto 5
+```{r}
+# Matriz simétrica
+matriz2 = matrix(c(1, 2, 2, 3), nrow = 2, byrow = TRUE)
+matriz2
+
+# Matriz asimétrica
+matriz3 = matrix(c(1, 2, 3, 4), nrow = 2, byrow = TRUE)
+matriz3
+```
+
+```{r}
+# Multiplicación matricial
+matriz2 %*% matriz3
+```
+
+### Punto 6
+```{r}
+list1 = list(a = c(2, 3, 4), b = c("A", "B"),
+             c = matrix(5:10, nrow = 3, byrow = TRUE))
+
+# Mostrar 2da fila de "c"
+list1$c[2, ]
+```
+
+### Punto 7
+```{r}
+df = data.frame(
+  id = 1:5,
+  codigo = 2001:2005,
+  nombre = c("Nicolás", "Juliana", "Carlos", "David", "Tomás"),
+  apellido = c("García", "López", "Cárdenas", "Lara", "Rodríguez")
+)
+
+df$edad = as.integer(runif(5, min = 16, max = 25))
+
+```
+
+```{r}
+# Nueva columna
+df$sexo = c("M", "F", "M", "M", "M")
+df
+```
+
+### Punto 8
+```{r}
+D = array(1:16, dim = c(2, 2, 4)) # filas x columnas x profundidad
+
+# 3era matriz
+D[, , 3]
+```
+
+### Punto 9
+```{r}
+# segundo elemento = fila 2, primer columna = columna 1, última matriz = matriz 4
+
+D[2, 1, 4]
+```
+
+## Sección 3
+
+### Punto 1
+```{r}
+temp = 22
+
+if (temp < 10) {
+  print("Frío")
+} else if (temp < 20) {
+  print("Fresco")
+} else if (temp < 30) {
+  print("Caliente")
+} else if (temp >= 30) {
+  print("Muy caliente")
+} else {
+  print("Nada")
+}
+```
+
+### Punto 2
+```{r}
+m1 = matrix(0, nrow = 5, ncol = 5)
+
+# Matriz identidad 5x5 (i = j)
+
+for (i in 1:nrow(m1)) {
+  m1[i, i] = 1
+  }
+
+m1
+```
+
+### Punto 3
+```{r}
+# Función par o impar
+es_par = function(numero) {
+  if (numero %% 2 == 0) {
+    return("El número es par.")
+  } else {
+    return("El número es impar.")
+  }
+}
+
+es_par(8)
+es_par(5)
+```
+
+### Punto 4
+```{r}
+# Vector y loop
+vect5 = c(3, 6, 9, 12, 15)
+
+for (i in 1:length(vect5)) {
+  print(es_par(vect5[i]))
+}
+```
+
+## Sección 4
+
+### Punto 1
+```{r}
+library(readxl)
+library(ggplot2)
+
+# Excel
+pinguinos = read_excel("../data/Pinguinos.xlsx", sheet = "Tabla 1")
+str(pinguinos)
+
+# Col numéricas
+pinguinos[, 3:6] = lapply(pinguinos[, 3:6], as.numeric)
+
+# Plot
+ggplot(data = pinguinos,
+       aes(x = body_mass_g,
+           y = flipper_leng,
+           color = island)) +
+  geom_point(alpha = 0.7) +
+  labs(x = "Masa corporal (g)",
+       y = "Longitud de la aleta (mm)",
+       color = "Isla") +
+  theme_bw()
+```
+

@@ -1,0 +1,548 @@
+---
+title: "Taller 3"
+author: |
+  Juanita Guerrero<br>
+  María José Camacho<br>
+  Grupo 6
+date: "`r { meses <- c('enero','febrero','marzo','abril','mayo','junio', 'julio','agosto','septiembre','octubre','noviembre','diciembre')
+  hoy <- Sys.Date() paste(as.numeric(format(hoy, '%d')), 'de', meses[as.numeric(format(hoy,
+  '%m'))], 'de', format(hoy, '%Y')) }`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    theme: flatly
+    highlight: kate
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    code_folding: show
+    number_sections: false
+    css: styles.css
+subtitle: Biología Cuantitativa
+---
+
+## Sección 1
+### Ejercicio 1
+
+```{r,warning=FALSE,message=FALSE}
+library(tidyverse)
+
+# Covarianza
+palmer = read.csv("../data/new_palmer_pe.csv")
+palmer = na.omit(palmer)
+
+# Selección var
+pico = palmer$bill_depth_mm
+aleta = palmer$flipper_length_mm
+
+media_pico = mean(pico)
+media_aleta = mean(aleta)
+
+covarianza = sum((pico-media_pico)*(aleta-media_aleta))/(length(pico)-1)
+covarianza
+
+# Función R comparación
+cov(pico,aleta)
+```
+
+## Sección 2
+### Ejercicio 2
+
+```{r}
+# Desv estándar
+sd_pico = sd(pico)
+sd_aleta = sd(aleta)
+
+# Pearson
+pearson = covarianza/(sd_pico*sd_aleta)
+pearson
+
+# Función R comparación
+cor.test(pico, aleta, method = "pearson")
+```
+
+#### Supuestos
+#### 1. Linealidad
+
+```{r,warning=FALSE,message=FALSE}
+library(ggplot2)
+
+ggplot(data=palmer,
+       aes(x=pico,
+           y=aleta))+
+  geom_point(color="#1565C0",alpha=0.25)+
+  geom_smooth(method="lm",se=FALSE,color="#0D47A1")+
+  geom_smooth(method="loess",se=FALSE,color="#42A5F5")+
+  labs(title="Relación entre profundidad del pico y longitud de la aleta",
+       x="Profundidad del pico (mm)",
+       y="Longitud de la aleta (mm)")+
+  theme_bw()
+```
+
+**Se observa una tendencia positiva entre las dos variables, aunque la curva LOESS no sigue completamente la recta de regresión, especialmente en algunos valores bajos de profundidad del pico. Por esto, la relación no es totalmente lineal.**
+
+#### 2. Normalidad
+
+**H₀:** los datos siguen una distribución normal.
+
+**H₁:** los datos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Prueba
+shapiro.test(pico)
+shapiro.test(aleta)
+```
+
+**Para `pico`, el valor p es mayor que 0.05, por lo que no se rechaza H₀ y no hay evidencia de que los datos no sigan una distribución normal. Para `aleta`, el valor p es menor que 0.05, por lo que se rechaza H₀ y se concluye que los datos no siguen una distribución normal.**
+
+#### 3. Homocedasticidad
+
+**H₀:** la varianza de los residuos es constante.
+
+**H₁:** la varianza de los residuos no es constante.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r,warning=FALSE,message=FALSE}
+# Regresión aleta depende de pico
+regresion=lm(aleta~pico,data=palmer)
+
+# Prueba
+library(lmtest)
+bptest(regresion)
+```
+
+**El valor p es menor que 0.05, por lo que se rechaza H₀. Hay evidencia de que la varianza de los residuos no es constante, por lo que no se cumple la homocedasticidad.**
+
+### Ejercicio 3
+
+**Como no se cumplen los supuestos de linealidad, normalidad y homocedasticidad, la correlación de Pearson no se puede usar. Se utilizará la correlación de Spearman.**
+
+```{r}
+# Asignar rangos
+rpico=rank(pico)
+raleta=rank(aleta)
+
+# Diferencia entre rangos
+dif=rpico-raleta
+dif2=dif^2
+
+# Valores en pico (#)
+n=length(pico)
+
+# Cuántas veces aparece cada valor
+rep_pico=table(pico)
+rep_aleta=table(aleta)
+
+rep_pico2=rep_pico[rep_pico>1]
+rep_aleta2=rep_aleta[rep_aleta>1]
+
+# Corrección empates T
+tp=sum(rep_pico2^3-rep_pico2)
+ta=sum(rep_aleta2^3-rep_aleta2)
+
+tp
+ta
+
+# Spearman
+pico_aleta=(n^3-n-6*sum(dif2)-(tp+ta)/2)/
+  sqrt(((n^3-n)-tp)*((n^3-n)-ta))
+
+pico_aleta
+
+# Función R comparación
+cor.test(pico,aleta,method="spearman")
+```
+
+## Sección 3
+### Ejercicio 4
+
+```{r}
+# Solo variables numéricas
+numericas=select(palmer,where(is.numeric))
+l_pico=numericas$bill_length_mm
+masa=numericas$body_mass_g
+
+# Matriz Spearman
+calculo_spearman=function(x,y){
+  
+    rx=rank(x)
+    ry=rank(y)
+  
+    diferencia=rx-ry
+    diferencia2=diferencia^2
+  
+    n=length(x)
+  
+    rep_x=table(x)
+    rep_y=table(y)
+  
+    rep_x2=rep_x[rep_x>1]
+    rep_y2=rep_y[rep_y>1]
+  
+    tx=sum(rep_x2^3-rep_x2)
+    ty=sum(rep_y2^3-rep_y2)
+  
+    resultado=((n^3-n)-6*sum(diferencia2)-(tx+ty)/2)/
+      sqrt(((n^3-n)-tx)*((n^3-n)-ty))
+  
+    return(resultado)
+  }
+  
+  largo_pico=calculo_spearman(pico,l_pico)
+  pico_masa=calculo_spearman(pico,masa)
+  largo_aleta=calculo_spearman(l_pico,aleta)
+  largo_masa=calculo_spearman(l_pico,masa)
+  aleta_masa=calculo_spearman(aleta,masa)
+  
+  matriz=matrix(c(
+  1,largo_pico,pico_aleta,pico_masa,
+  largo_pico,1,largo_aleta,largo_masa,
+  pico_aleta,largo_aleta,1,aleta_masa,
+  pico_masa,largo_masa,aleta_masa,1
+),nrow=4,byrow=TRUE)
+
+colnames(matriz)=c("pico","l_pico","aleta","masa")
+rownames(matriz)=c("pico","l_pico","aleta","masa")
+
+matriz
+
+```
+
+```{r}
+# Función R comparación
+cor(numericas,method="spearman")
+```
+
+```{r,warning=FALSE,message=FALSE}
+library(reshape2)
+
+# Formato largo
+matriz_l=melt(matriz)
+
+```
+
+```{r}
+ggplot(data=matriz_l,
+       aes(x=Var1,
+           y=Var2,
+           fill=value))+
+  geom_tile()+
+  labs(title="Matriz de correlación de Spearman",
+       x="Variable",
+       y="Variable",
+       fill="Correlación")+
+  theme_bw()
+```
+
+**Se observa que todas las variables tienen una correlación positiva entre sí. La relación más alta es entre `aleta` y `masa` (ρ = 0.79), mientras que `pico` y `l_pico` presentan la correlación más baja (ρ = 0.27).**
+
+## Sección 4
+### Ejercicio 5
+
+```{r}
+agro=read.csv("../data/agro.csv")
+
+# Primeras 500 filas
+agro=agro[1:500,]
+
+# Medias
+mx=mean(agro$soil_moisture_pct)
+my=mean(agro$phosphorus_ppm)
+
+# Beta 1
+b1=sum((agro$soil_moisture_pct-mx)*
+        (agro$phosphorus_ppm-my))/sum((agro$soil_moisture_pct-mx)^2)
+
+# Beta 0
+b0=my-(b1*mx)
+
+b0
+b1
+```
+
+```{r}
+# Función R comparación
+reg=lm(phosphorus_ppm~soil_moisture_pct,data=agro)
+
+coef(reg)
+```
+
+**Los resultados obtenidos manualmente fueron iguales a los de la función `lm()`, por lo que comprobamos que el cálculo de los coeficientes fue correcto.**
+
+### Ejercicio 6
+
+#### Supuestos
+#### 1. Linealidad
+
+```{r}
+ggplot(data=agro,
+       aes(x=soil_moisture_pct,
+           y=phosphorus_ppm))+
+  geom_point(color="#1565C0",alpha=0.25)+
+  geom_smooth(method="lm",se=FALSE,color="#0D47A1")+
+  geom_smooth(method="loess",se=FALSE,color="#42A5F5")+
+  labs(title="Relación entre humedad del suelo y fósforo",
+       x="Humedad del suelo (%)",
+       y="Fósforo (ppm)")+
+  theme_bw()
+```
+
+**La curva de LOESS se aleja de la recta de regresión, especialmente hacia los extremos, lo que sugiere que puede existir una relación no lineal entre las variables.**
+
+#### 2. Normalidad
+**H₀:** los residuos siguen una distribución normal.
+
+**H₁:** los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Residuos 
+residuos=residuals(reg)
+
+shapiro.test(residuos)
+```
+
+**El valor p es menor que 0.05, por lo que se rechaza H₀. Hay evidencia de que los residuos no siguen una distribución normal.**
+
+#### 3. Homocedasticidad
+**H₀:** la varianza de los de los residuos es constante.
+
+**H₁:** la varianza de los residuos no es constante.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Prueba Breusch-Pagan
+bptest(reg)
+```
+
+**El valor p es mayor que 0.05, por lo que no se rechaza H₀. No hay evidencia de que la varianza de los residuos no sea constante.**
+
+#### 4. Independencia
+**H₀:** los errores son independientes.
+
+**H₁:** los errores no son independientes.
+
+```{r}
+# Prueba Durbin-Watson
+dwtest(reg)
+```
+
+**El valor p es mayor que 0.05, por lo que no se rechaza H₀. No hay evidencia de dependencia entre los errores.**
+
+#### Conclusión
+**El modelo no cumple con todos los supuestos, ya que presenta problemas de linealidad y normalidad. La homocedasticidad y la independencia sí se cumplen según las pruebas realizadas.**
+
+### Ejercicio 7
+
+```{r}
+# Vector y
+y=as.matrix(agro$soil_ph)
+
+# Para calcular intercepto
+intercepto=rep(1,nrow(agro))
+
+# Matriz x
+x=cbind(intercepto,
+        agro$nitrogen_ppm,
+        agro$potassium_ppm)
+
+producto_x=t(x)%*%x
+
+inversa_x=solve(producto_x)
+
+producto_xy=t(x)%*%y
+
+betas=inversa_x%*%producto_xy
+betas
+
+# Función R comparación
+regresion=lm(soil_ph~nitrogen_ppm+potassium_ppm,data=agro)
+coef(regresion)
+
+```
+
+**Los coeficientes obtenidos mediante el cálculo matricial coinciden con los obtenidos mediante la función lm() de R.**
+
+**Modelo estimado:**
+$$
+\widehat{soil\_ph}=6.5677+0.000615(nitrogen\_ppm)-0.001408(potassium\_ppm)
+$$
+
+### Ejercicio 8
+
+#### Supuestos
+#### 1. Normalidad
+**H₀:** los residuos siguen una distribución normal.
+
+**H₁:** los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Sacar residuos
+residuos=residuals(regresion)
+
+shapiro.test(residuos)
+```
+
+**El valor p es mayor que 0.05, por lo que no se rechaza H₀. No hay evidencia de que los residuos se alejen de una distribución normal.**
+
+#### 2. Homocedasticidad
+**H₀:** la varianza de los residuos es constante.
+
+**H₁:** la varianza de los residuos no es constante.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Prueba Breusch-Pagan
+bptest(regresion)
+```
+
+**El valor p es mayor que 0.05, por lo que no se rechaza H₀. No hay evidencia de que la varianza de los residuos no sea constante.**
+
+#### 3. Independencia
+**H₀:** los errores son independientes.
+
+**H₁:** los errores no son independientes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Prueba Durbin-Watson
+dwtest(regresion)
+```
+
+**El valor p es mayor que 0.05, por lo que no se rechaza H₀. No hay evidencia de dependencia entre los errores del modelo.**
+
+#### Conclusión
+**En las pruebas realizadas no encontramos problemas con la normalidad, la homocedasticidad ni la independencia de los errores. Por esto, consideramos que el modelo cumple con los supuestos necesarios para realizar inferencia.**
+
+### Ejercicio 9
+```{r}
+matriz
+```
+
+**Antes de construir el modelo, se revisó la matriz de correlación de Spearman obtenida en el ejercicio 4 para evaluar la relación entre los predictores. Las correlaciones entre `bill_depth_mm`, `bill_length_mm` y `body_mass_g` fueron de 0.27, 0.57 y 0.56, respectivamente, por lo que no se observa una colinealidad fuerte entre estas variables.**  
+
+
+**Se utilizarán como predictores de `flipper_length_mm`: `bill_depth_mm`, `bill_length_mm` y `body_mass_g`**  
+
+
+**¿La longitud de la aleta se relaciona con las características del pico y la masa corporal de los pingüinos?**
+$$
+flipper\_length\_mm=β0​+β1​(bill\_length\_mm)+β2​(bill\_depth\_mm)+β3​(body\_mass\_g)+ϵ
+$$
+
+```{r}
+# Vector y
+y_ej9=as.matrix(palmer$flipper_length_mm)
+
+# Para calcular intercepto
+intercepto_ej9=rep(1,nrow(palmer))
+
+# Matriz x
+x_ej9=cbind(intercepto_ej9,
+            palmer$bill_length_mm,
+            palmer$bill_depth_mm,
+            palmer$body_mass_g)
+
+producto_x_ej9=t(x_ej9)%*%x_ej9
+
+inversa_x_ej9=solve(producto_x_ej9)
+
+producto_xy_ej9=t(x_ej9)%*%y_ej9
+
+betas_ej9=inversa_x_ej9%*%producto_xy_ej9
+
+betas_ej9
+
+# Función R comparación
+regresion_ej9=lm(flipper_length_mm~bill_length_mm+bill_depth_mm+body_mass_g,
+                 data=palmer)
+
+coef(regresion_ej9)
+```
+
+**Los coeficientes obtenidos mediante el cálculo matricial coinciden con los obtenidos mediante la función lm() de R.**
+
+**Modelo estimado:**
+$$
+\widehat{flipper\_length\_mm}=107.1+0.5863(bill\_length\_mm)+0.9091(bill\_depth\_mm)+0.01252(body\_mass\_g)
+$$
+
+#### Supuestos
+#### 1. Normalidad
+**H₀:** los residuos siguen una distribución normal.
+
+**H₁:** los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+residuos_ej9=residuals(regresion_ej9)
+
+shapiro.test(residuos_ej9)
+```
+
+**El valor p es menor que 0.05, por lo que se rechaza H₀. Hay evidencia de que los residuos no siguen una distribución normal.**
+
+#### 2. Homocedasticidad
+**H₀:** la varianza de los residuos es constante.
+
+**H₁:** la varianza de los residuos no es constante.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Prueba Breusch-Pagan
+bptest(regresion_ej9)
+```
+
+**El valor p es menor que 0.05, por lo que se rechaza H₀. Hay evidencia de que la varianza de los residuos no es constante.**
+
+#### 3. Independencia
+**H₀:** los errores son independientes.
+
+**H₁:** los errores no son independientes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r}
+# Prueba Durbin-Watson
+dwtest(regresion_ej9)
+```
+
+**El valor p es menor que 0.05, por lo que se rechaza H₀. Hay evidencia de que los errores no son independientes.**
+
+```{r}
+summary(regresion_ej9)
+```
+
+**`bill_length_mm`:** Un aumento de 1mm en la longitud del pico se asocia con un aumento esperado de 0.5863 mm en la longitud de la aleta.
+
+**`bill_depth_mm`:** Un aumento de 1mm en la profundidad del pico se asocia con un aumento esperado de 0.9091 mm en la longitud de la aleta.
+
+**`body_mass_g`:** Un aumento de 1g en la masa corporal se asocia con un aumento esperado de 0.01252 mm en la longitud de la aleta.
+
+**Significancia:** Los tres predictores tienen valores p menores que 0.05, por lo que se consideran significativos. Esto indica que las tres variables están relacionadas con la longitud de la aleta dentro del modelo.
+
+**Error estándar residual:** El error estándar residual es de 16.63mm, lo que indica cuánto se alejan, en promedio, los valores observados de los valores estimados por el modelo.
+
+**$R^2$:** El modelo presenta un R² de 0.6702, por lo que aproximadamente el 67.02% de la variabilidad en la longitud de la aleta es explicada por las tres variables predictoras.
+
+**$R^2$ ajustado:** El $R^2$ ajustado es muy similar al $R^2$, al tener en cuenta el número de predictores incluidos en el modelo la proporción explicada se mantiene prácticamente igual.
+
+**Estadístico F:** El valor p asociado al estadístico F es menor que 0.05, por lo que se rechaza H₀. Esto muestra que existe una relación significativa entre la variable respuesta y el conjunto de predictores.
+
+#### Conclusión
+**El modelo explica el 67.02% de la variabilidad de la longitud de la aleta y los tres predictores son significativos. Sin embargo, no se cumplen los supuestos de normalidad, homocedasticidad e independencia, por lo que el modelo no cumple las condiciones necesarias para realizar inferencia.**

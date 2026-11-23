@@ -1,0 +1,776 @@
+---
+title: ""
+author: ""
+date: ""
+
+output:
+  pdf_document:
+    toc: false
+    number_sections: false
+    latex_engine: xelatex
+
+header-includes:
+  - \usepackage{geometry}
+  - \geometry{margin=2.5cm}
+---
+
+\begin{center}
+
+\vspace{1cm}
+
+{\Huge \textbf{Parcial 1}}
+
+\vspace{0.3cm}
+
+{\Large Biología Cuantitativa}
+
+\vspace{1cm}
+
+\end{center}
+
+\noindent
+\textbf{} Juanita Guerrero
+\hfill
+`r {
+  meses <- c('enero','febrero','marzo','abril','mayo','junio',
+             'julio','agosto','septiembre','octubre','noviembre','diciembre')
+  hoy <- Sys.Date()
+  paste(as.numeric(format(hoy, '%d')),
+        'de',
+        meses[as.numeric(format(hoy, '%m'))],
+        'de',
+        format(hoy, '%Y'))
+}`
+
+\vspace{-1.5em}
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{-0.3em}
+
+\begingroup
+\renewcommand{\contentsname}{}
+\tableofcontents
+\endgroup
+
+\newpage
+
+# Sección 1 - Corales
+
+\vspace{-2em}
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{-0.3em}
+
+## Ejercicio 1
+
+Estamos comparando la media de una variable cuantitativa (`tasa_calcificacion`) entre dos grupos (`reserva_amp` y `explotado`). La prueba que corresponde es una prueba t para dos muestras independientes.
+
+**Hipótesis**
+
+**$H_0$:** La tasa promedio de calcificación en `reserva_amp` es igual o menor que en `explotado`.
+
+**$H_1$:** La tasa promedio de calcificación en `reserva_amp` es mayor que en `explotado`.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+datos_cor = read.csv("../data/df_corales_parcial.csv")
+
+# Separar tasa calcificación de otras mediciones
+calc = datos_cor[datos_cor$metrica_tipo == "tasa_calcificacion",]
+
+```
+
+\vspace{0.5cm}
+
+**Supuestos**
+
+**Normalidad**
+
+**$H_0$:** los datos siguen una distribución normal.
+
+**$H_1$:** los datos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+shapiro.test(
+  calc$valor_medicion[calc$estatus_proteccion == "reserva_amp"]
+)
+
+shapiro.test(
+  calc$valor_medicion[calc$estatus_proteccion == "explotado"]
+)
+```
+
+No hay evidencia estadísticamente significativa de que los grupos no siguen una distribución normal. No se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Homocedasticidad**
+
+**$H_0$:** las varianzas de los grupos son iguales.
+
+**$H_1$:** las varianzas de los grupos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+library(car)
+
+leveneTest(
+  valor_medicion ~ estatus_proteccion, data = calc
+)
+```
+
+No hay evidencia estadísticamente significativa de que las varianzas de los grupos sean diferentes. No se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+Como hay varianzas homogéneas, usamos la prueba t de Student para dos muestras independientes.
+
+```{r, warning=FALSE, message=FALSE}
+# Se coloca reserva primero para que "greater" evalúe esa dirección
+t.test(
+  calc$valor_medicion[calc$estatus_proteccion == "reserva_amp"],
+  calc$valor_medicion[calc$estatus_proteccion == "explotado"],
+  alternative = "greater",
+  var.equal = TRUE
+)
+```
+
+Los corales de `reserva_amp` presentaron una tasa promedio de calcificación mayor (2.48 g/cm²/día) que los de `explotado` (1.19 g/cm²/día). Esta diferencia fue significativa (`t = 35.43`, `gl = 498`, `p < 0.001`), por lo que se rechaza $H_0$.
+
+## Ejercicio 2
+
+Estamos comparando la media de una variable cuantitativa (`eficiencia_fvfm`) entre tres grupos independientes definidos por `nivel_profundidad`. Como tenemos más de dos grupos, corresponde utilizar un ANOVA de una vía.
+
+**Hipótesis**
+
+**$H_0$:** La eficiencia fotosintética promedio es igual en los tres niveles de profundidad.
+
+**$H_1$:** La eficiencia fotosintética promedio es diferente en al menos uno de los niveles de profundidad.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+# Separar eficiencia fotosintética de otras mediciones
+fvfm = datos_cor[datos_cor$metrica_tipo == "eficiencia_fvfm",]
+```
+
+\vspace{0.5cm}
+
+```{r, warning=FALSE, message=FALSE}
+# ANOVA para obtener residuos
+anova_foto = aov(
+  valor_medicion ~ nivel_profundidad, data = fvfm
+)
+```
+
+**Supuestos**
+
+**Normalidad**
+
+**$H_0$:** Los residuos siguen una distribución normal.
+
+**$H_1$:** Los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+shapiro.test(residuals(anova_foto))
+```
+
+Hay evidencia estadísticamente significativa de que los residuos no siguen una distribución normal. Se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Homocedasticidad**
+
+**$H_0$:** las varianzas de los residuos son iguales.
+
+**$H_1$:** las varianzas de los residuos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+leveneTest(
+  residuals(anova_foto) ~ fvfm$nivel_profundidad
+)
+```
+
+Hay evidencia estadísticamente significativa de que las varianzas de los residuos son diferentes entre las profundidades. Se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+Como no se cumplen los supuestos de normalidad y homocedasticidad, se utiliza la prueba de Kruskal-Wallis como alternativa no paramétrica al ANOVA.
+
+```{r, warning=FALSE, message=FALSE}
+kruskal.test(
+  valor_medicion ~ nivel_profundidad, data = fvfm
+)
+```
+
+Hay diferencias significativas en la eficiencia fotosintética entre los niveles de profundidad. Se rechaza $H_0$.
+
+```{r, warning=FALSE, message=FALSE}
+# Comparación x pares
+pairwise.wilcox.test(
+  fvfm$valor_medicion, fvfm$nivel_profundidad, p.adjust.method = "holm"
+)
+```
+
+Se encontraron diferencias significativas entre todas las profundidades (`p < 2e-16`). Por tanto, ninguna de las profundidades presenta un comportamiento similar.
+
+## Ejercicio 3
+
+Estamos comparando la densidad de zooxantelas entre tres especies de coral (`especie_codigo`), pero teniendo en cuenta que `par_luz_umol` también puede influir en esta variable. Por esto, se utiliza un ANCOVA.
+
+**Hipótesis**
+
+**$H_0$**: La densidad promedio de zooxantelas es igual entre las tres especies, después de controlar el efecto de la luz disponible.
+
+**$H_1$**: La densidad promedio de zooxantelas es diferente entre al menos una de las especies, después de controlar el efecto de la luz disponible.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+# Separar densidad de zooxantelas de otras mediciones
+zoox = datos_cor[datos_cor$metrica_tipo == "densidad_zooxantelas",]
+```
+
+\vspace{0.5cm}
+
+```{r, warning=FALSE, message=FALSE}
+# ANCOVA para obtener residuos
+ancova_zoox = aov(
+  valor_medicion ~ especie_codigo + par_luz_umol, data = zoox
+)
+```
+
+**Supuestos**
+
+**Normalidad**
+
+**$H_0$:** Los residuos siguen una distribución normal.
+
+**$H_1$:** Los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+shapiro.test(residuals(ancova_zoox))
+```
+
+Hay evidencia estadísticamente significativa de que los residuos no siguen una distribución normal. Se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Homocedasticidad**
+
+**$H_0$:** las varianzas de los residuos son iguales.
+
+**$H_1$:** las varianzas de los residuos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+leveneTest(
+  residuals(ancova_zoox) ~ zoox$especie_codigo
+)
+```
+
+Hay evidencia estadísticamente significativa de que las varianzas de los residuos son diferentes entre las especies. Se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Linealidad**
+
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
+library(ggplot2)
+
+ggplot(zoox, aes(x = par_luz_umol, y = valor_medicion, color = especie_codigo))+
+  geom_point(alpha = 0.6)+
+  geom_smooth(method = "lm", se = FALSE)+
+  scale_color_manual(values = c("#0D47A1", "#1976D2", "#42A5F5"
+  ))+
+  labs(
+    x = "Luz disponible (µmol/m²/s)",
+    y = "Densidad de zooxantelas",
+    color = "Especie",
+    title = "Relación entre luz disponible y densidad de zooxantelas"
+  )+
+  theme_minimal()
+
+```
+
+Se observa una relación aproximadamente lineal entre `par_luz_umol` y la densidad de zooxantelas dentro de las especies, aunque las pendientes varían entre los grupos.
+
+\vspace{0.5cm}
+
+**Homogeneidad pendientes**
+
+**$H_0$:** Las pendientes de la relación entre `par_luz_umol` y la densidad de zooxantelas son iguales entre las especies.
+
+**$H_1$:** Las pendientes de la relación entre `par_luz_umol` y la densidad de zooxantelas son diferentes entre las especies.
+
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
+interaccion = aov(
+  valor_medicion ~ especie_codigo * par_luz_umol, data = zoox
+)
+summary(interaccion)
+```
+
+La interacción entre `especie_codigo` y `par_luz_umol` fue estadísticamente significativa ($p < 2 \times 10^{-16}$). Por lo tanto, se rechaza $H_0$ y no se cumple el supuesto de homogeneidad de las pendientes.
+
+El modelo no es estadísticamente aceptable, ya que no se cumplen los supuestos de normalidad de los residuos, homocedasticidad y homogeneidad de las pendientes.
+
+# Sección 2 - Búhos
+
+\vspace{-2em}
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{-0.3em}
+
+## Ejercicio 4
+
+Estamos evaluando si existe una asociación entre `envergadura_cm` y `peso_g` de los búhos. Como ambas son variables cuantitativas continuas y buscamos determinar la fuerza, dirección y significancia de su asociación, utilizamos una correlación.
+
+**Hipótesis**
+
+**$H_0$:** No existe una asociación entre la envergadura alar y la masa corporal.
+**$H_1$:** Existe una asociación entre la envergadura alar y la masa corporal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
+owl = read.csv("../data/df_buhos_parcial.csv")
+```
+
+\vspace{0.5cm}
+
+**Supuestos**
+
+**Linealidad**
+
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
+ggplot(data = owl,
+       aes(x = peso_g,
+           y = envergadura_cm))+
+  geom_point(color = "#1565C0", alpha = 0.25)+
+  geom_smooth(method = "lm", se = FALSE, color = "#0D47A1")+
+  geom_smooth(method = "loess", se = FALSE, color = "#42A5F5")+
+  labs(title = "Relación entre masa corporal y envergadura alar",
+       x = "Masa corporal (g)",
+       y = "Envergadura alar (cm)")+
+  theme_bw()
+```
+
+Se observa una relación aproximadamente lineal y positiva entre `peso_g` y `envergadura_cm`.
+
+\vspace{0.5cm}
+
+**Normalidad**
+
+**$H_0$:** Las variables siguen una distribución normal.
+
+**$H_1$:** Las variables no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+shapiro.test(owl$peso_g)
+shapiro.test(owl$envergadura_cm)
+```
+
+No se encontró evidencia estadísticamente significativa de que las variables no sigan una distribución normal. No se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+Debido a que ambas variables son cuantitativas, presentan una relación aproximadamente lineal y siguen una distribución normal, se utiliza una correlación de Pearson.
+
+```{r, warning=FALSE, message=FALSE}
+cor.test(
+  owl$peso_g, owl$envergadura_cm, method = "pearson"
+)
+```
+
+Se encontró una asociación positiva y fuerte entre `peso_g` y `envergadura_cm` ($r = 0.934$, $p < 0.001$). Por lo tanto, se rechaza $H_0$.
+
+## Ejercicio 5
+
+Estamos evaluando si la `tasa_caza_anual` puede estimarse a partir del `peso_g` de los búhos. Queremos modelar una variable cuantitativa en función de otra variable cuantitativa, entonces utilizamos una regresión lineal simple.
+
+**Hipótesis**
+
+**$H_0$:** El peso corporal no tiene un efecto significativo sobre la tasa de caza anual ($\beta_1 = 0$).
+
+**$H_1$:** El peso corporal tiene un efecto significativo sobre la tasa de caza anual ($\beta_1 \neq 0$).
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+# Regresión para obtener residuos
+reg = lm(
+  tasa_caza_anual ~ peso_g, data = owl
+)
+```
+
+\vspace{0.5cm}
+
+**Supuestos**
+
+**Linealidad**
+
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
+ggplot(data = owl,
+       aes(x = peso_g,
+           y = tasa_caza_anual))+
+  geom_point(color = "#1565C0", alpha = 0.25)+
+  geom_smooth(method = "lm", se = FALSE, color = "#0D47A1")+
+  geom_smooth(method = "loess", se = FALSE, color = "#42A5F5")+
+  labs(
+    title = "Relación entre masa corporal y tasa de caza anual",
+    x = "Masa corporal (g)",
+    y = "Tasa de caza anual (presas/año)"
+  ) +
+  theme_bw()
+```
+
+Se observa una relación aproximadamente lineal y positiva entre `peso_g` y `tasa_caza_anual`.
+
+\vspace{0.5cm}
+
+**Normalidad**
+
+**$H_0$:** Los residuos siguen una distribución normal.
+
+**$H_1$:** Los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+shapiro.test(residuals(reg))
+```
+
+No hay evidencia estadísticamente significativa de que los residuos no sigan una distribución normal. No se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Homocedasticidad**
+
+**$H_0$:** las varianzas de los residuos son iguales.
+
+**$H_1$:** las varianzas de los residuos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+library(lmtest)
+
+bptest(reg)
+```
+
+No hay evidencia estadísticamente significativa de que la varianza de los residuos no sea constante. No se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Independencia**
+
+**$H_0$:** Los residuos son independientes.
+
+**$H_1$:** Los residuos no son independientes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+dwtest(reg)
+```
+
+No hay evidencia estadísticamente significativa de que los residuos no sean independientes. No se rechaza $H_0$.
+
+```{r, warning=FALSE, message=FALSE}
+summary(reg)
+```
+
+\vspace{0.5cm}
+
+**Modelo estimado:**
+$$
+\widehat{\text{Tasa de caza anual (presas/año)}} = 117.9 + 0.1511(\text{peso\_g})
+$$
+
+Se encontró una relación positiva y significativa entre el peso corporal y la tasa de caza anual ($\beta_1 = 0.1511$, $p < 0.001$). El intercepto del modelo es de 117.9, que corresponde a la tasa de caza estimada para un búho con un peso de 0 g, aunque este valor no tiene una interpretación biológica realista. Por cada gramo adicional de peso, la tasa de caza aumenta en aproximadamente 0.151 presas al año. El modelo explica el 84.22% de la variación en la tasa de caza anual ($R^2 = 0.8422$).
+
+## Ejercicio 6
+
+Estamos evaluando si `fuerza_garra_n` está relacionada con `peso_g` y `especie`. Como tenemos una variable respuesta cuantitativa y dos variables predictoras, una cuantitativa y otra categórica, utilizamos una regresión lineal múltiple.
+
+**Hipótesis**
+
+**$H_0$:** Pertenecer a una especie u otra no desplaza el intercepto de la relación entre el peso corporal y la fuerza de la garra.
+
+**$H_1$:** Pertenecer a una especie u otra desplaza el intercepto de la relación entre el peso corporal y la fuerza de la garra.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+# Regresión efecto peso y especie sobre fuerza de la garra
+reg_fg = lm(
+  fuerza_garra_n ~ peso_g + especie, data = owl
+)
+
+```
+
+\vspace{0.5cm}
+
+**Supuestos**
+
+**Linealidad**
+
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
+ggplot(data = owl,
+       aes(x = peso_g,
+           y = fuerza_garra_n))+
+  geom_point(color = "#1565C0", alpha = 0.25)+
+  geom_smooth(method = "lm", se = FALSE, color = "#0D47A1")+
+  geom_smooth(method = "loess", se = FALSE, color = "#42A5F5")+
+  labs(
+    title = "Relación entre masa corporal y fuerza de la garra",
+    x = "Masa corporal (g)",
+    y = "Fuerza de la garra (N)"
+  ) +
+  theme_bw()
+```
+
+Se observa una relación positiva y aproximadamente lineal entre `peso_g` y `fuerza_garra_n`, aunque se presentan algunas desviaciones respecto a la tendencia lineal en determinados valores de peso.
+
+\vspace{0.5cm}
+
+**Normalidad**
+
+**$H_0$:** Los residuos siguen una distribución normal.
+
+**$H_1$:** Los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+shapiro.test(residuals(reg_fg))
+```
+
+No hay evidencia estadísticamente significativa de que los residuos no sigan una distribución normal. No se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Homocedasticidad**
+
+**$H_0$:** las varianzas de los residuos son iguales.
+
+**$H_1$:** las varianzas de los residuos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+bptest(reg_fg)
+```
+
+No hay evidencia estadísticamente significativa de que la varianza de los residuos no sea constante. No se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Independencia**
+
+**$H_0$:** Los residuos son independientes.
+
+**$H_1$:** Los residuos no son independientes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+dwtest(reg_fg)
+```
+
+No hay evidencia estadísticamente significativa de que los residuos no sean independientes. No se rechaza $H_0$.
+
+```{r, warning=FALSE, message=FALSE}
+summary(reg_fg)
+```
+
+\vspace{0.5cm}
+
+**Modelo estimado:**
+
+$$
+\widehat{\text{Fuerza de la garra (N)}} = 391.8 + 0.2036(\text{peso\_g}) - 24.75(\text{tyto\_alba})
+$$
+
+El peso corporal se relacionó de manera positiva y significativa con la fuerza de la garra ($\beta_1 = 0.2036$, $p < 0.001$), manteniendo constante la especie, por cada gramo adicional de peso la fuerza de la garra aumenta aproximadamente 0.204 N. Además, los individuos de `tyto_alba` presentaron una fuerza de garra aproximadamente 24.75 N menor que la especie de referencia, manteniendo constante el peso ($p < 0.001$). El modelo explica el 88.46% de la variación en la fuerza de la garra ($R^2 = 0.8846$). Por lo tanto, tanto el peso como la especie están relacionados con la fuerza de la garra.
+
+El intercepto es 391.8 y representa la fuerza de garra estimada para la especie de referencia cuando el peso es 0 g. Este valor no tiene una interpretación biológica realista, ya que un búho no puede tener un peso de 0 g.
+
+## Ejercicio 7
+
+Estamos evaluando si el `exito_reproductivo_pollos` está relacionado con `peso_g`, `altitud_m` y `especie`. Como tenemos una variable respuesta cuantitativa y varias variables predictoras, utilizamos una regresión lineal múltiple.
+
+**Hipótesis**
+
+**$H_0$:** El peso corporal, la altitud y la especie no tienen un efecto significativo sobre el éxito reproductivo.
+
+**$H_1$:** Al menos una de las variables predictoras tiene un efecto significativo sobre el éxito reproductivo.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+# Regresión efecto peso, altitud y especie sobre éxito reproductivo
+reg_r = lm(
+  exito_reproductivo_pollos ~ peso_g + altitud_m + especie, data = owl
+)
+```
+
+\vspace{0.5cm}
+
+**Normalidad**
+
+**$H_0$:** Los residuos siguen una distribución normal.
+
+**$H_1$:** Los residuos no siguen una distribución normal.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+shapiro.test(residuals(reg_r))
+```
+
+Hay evidencia estadísticamente significativa de que los residuos no siguen una distribución normal. Se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Homocedasticidad**
+
+**$H_0$:** las varianzas de los residuos son iguales.
+
+**$H_1$:** las varianzas de los residuos son diferentes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+bptest(reg_r)
+```
+
+No hay evidencia estadísticamente significativa de que la varianza de los residuos no sea constante. No se rechaza $H_0$.
+
+\vspace{0.5cm}
+
+**Independencia**
+
+**$H_0$:** Los residuos son independientes.
+
+**$H_1$:** Los residuos no son independientes.
+
+Nivel de significancia: $\alpha = 0.05$.
+
+```{r, warning=FALSE, message=FALSE}
+dwtest(reg_r)
+```
+
+No hay evidencia estadísticamente significativa de que los residuos no sean independientes. No se rechaza $H_0$.
+
+```{r, warning=FALSE, message=FALSE}
+summary(reg_r)
+```
+
+\vspace{0.5cm}
+
+**Modelo estimado:**
+$$
+\widehat{\text{Éxito reproductivo}} =
+2.361 + 0.001269(\text{peso\_g}) - 0.0008064(\text{altitud\_m}) + 0.01353(\text{tyto\_alba})
+$$
+
+El peso corporal se relacionó de manera positiva y significativa con el éxito reproductivo ($\beta_1 = 0.001269$, $p < 0.001$). Por cada gramo adicional de peso, el éxito reproductivo aumenta en aproximadamente 0.0013 pollos, manteniendo constantes la altitud y la especie. La altitud presentó una relación negativa y significativa con el éxito reproductivo ($\beta_2 = -0.0008064$, $p < 0.001$), mientras que la especie no presentó un efecto significativo ($p = 0.749$). El modelo explica el 68.44\% de la variación en el éxito reproductivo ($R^2 = 0.6844$). Sin embargo, la normalidad de los residuos no se cumple.
+
+El intercepto del modelo es 2.361 y representa el éxito reproductivo estimado cuando el peso y la altitud son 0.
+
+# Sección 3 - Accidentes
+
+\vspace{-2em}
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{-0.3em}
+
+## Ejercicio 8
+
+Utilizamos un Análisis de Componentes Principales (PCA) para resumir la información en un número menor de variables llamadas componentes principales (PC). Estos componentes permiten identificar los ejes que explican la mayor parte de la variación de los accidentes.
+
+```{r, warning=FALSE, message=FALSE}
+library(dplyr)
+
+accidentes = read.csv("../data/accidents.csv")
+accidentes = na.omit(accidentes)
+
+# Numéricas
+num = select_if(accidentes, is.numeric)
+
+# Excluir Severity - no representa medida continua
+num = num[, !names(num) %in% "Severity"]
+```
+
+```{r, warning=FALSE, message=FALSE}
+pca = prcomp(num, scale. = TRUE)
+summary(pca)
+```
+
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
+grafico_pca = data.frame(
+  PC = factor(
+    paste0("PC", 1:length(pca$sdev)),
+    levels = paste0("PC", 1:length(pca$sdev))
+  ),
+  var_exp = (pca$sdev^2) / sum(pca$sdev^2)
+)
+
+ggplot(grafico_pca, aes(x = PC, y = var_exp))+
+  geom_col(fill = "#1565C0")+
+  geom_line(aes(group = 1), color = "#0D47A1")+
+  geom_point(color = "#42A5F5")+
+  labs(
+    title = "Varianza explicada por los componentes principales",
+    x = "Componente principal",
+    y = "Proporción de varianza explicada"
+  )+
+  theme_bw()
+```
+
+Los primeros tres componentes principales explican el 49.65\% de la variación total de los accidentes. El PC1 explica la mayor proporción de variación (21.26\%), seguido del PC2 (16.04\%) y el PC3 (12.35\%). El gráfico muestra una disminución en la proporción de varianza explicada a medida que aumentan los componentes.
+
+## Ejercicio 9
+
+```{r}
+round(pca$rotation[, 1:2], 2)
+```
+
+En el PC1, las variables con mayor peso son `StartLng` y `Zipcode` (ambas con un valor absoluto de 0.61), seguidas por `Humidity` (0.34). En el PC2, las variables con mayor peso son `Temperature` (0.53), `StartLat` (-0.41), `Visibility` (0.39) y `Humidity` (-0.38). Los signos indican la dirección en la que cada variable se relaciona con el componente.
+
+## Ejercicio 10
+
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
+library(factoextra)
+
+fviz_pca_biplot(
+  pca,
+  habillage = factor(accidentes$Severity),
+  addEllipses = TRUE,
+  ellipse.level = 0.95,
+  label = "var",
+  repel = TRUE,
+  alpha.ind = 0.3,
+  col.var = "black",
+  title = "PCA de los accidentes según su severidad",
+  xlab = "PC1",
+  ylab = "PC2"
+) +
+  scale_color_manual(
+    values = c(
+      "#edf8b1", "#7fcdbb", "#2c7fb8", "#28348e"
+    )
+  )
+```
+
+PC1 está marcado principalmente por `StartLng` hacia el lado positivo y por `Zipcode` hacia el lado negativo. En PC2, `Temperature` se relaciona principalmente con valores positivos, mientras que `StartLat` y `Humidity` apuntan hacia el lado contrario. También se puede ver que algunas variables se mueven en direcciones similares, mientras que otras presentan relaciones opuestas. Los accidentes de las diferentes categorías de `Severity` están muy mezclados y las elipses se superponen bastante. En general, no se observa una separación clara de los accidentes según su gravedad.
